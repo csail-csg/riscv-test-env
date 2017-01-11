@@ -5,6 +5,10 @@
 
 #include "../encoding.h"
 
+#ifndef EXIT_REG_ADDR
+#define EXIT_REG_ADDR 0x60000000
+#endif
+
 //-----------------------------------------------------------------------
 // Begin Macro
 //-----------------------------------------------------------------------
@@ -98,11 +102,11 @@ trap_vector:                                                            \
         /* test whether the test came from pass/fail */                 \
         csrr t5, mcause;                                                \
         li t6, CAUSE_USER_ECALL;                                        \
-        beq t5, t6, write_tohost;                                       \
+        beq t5, t6, write_exit_reg;                                     \
         li t6, CAUSE_SUPERVISOR_ECALL;                                  \
-        beq t5, t6, write_tohost;                                       \
+        beq t5, t6, write_exit_reg;                                     \
         li t6, CAUSE_MACHINE_ECALL;                                     \
-        beq t5, t6, write_tohost;                                       \
+        beq t5, t6, write_exit_reg;                                     \
         /* if an mtvec_handler is defined, jump to it */                \
         la t5, mtvec_handler;                                           \
         beqz t5, 1f;                                                    \
@@ -116,9 +120,10 @@ handle_exception:                                                       \
   other_exception:                                                      \
         /* some unhandlable exception occurred */                       \
   1:    ori TESTNUM, TESTNUM, 1337;                                     \
-  write_tohost:                                                         \
-        sw TESTNUM, tohost, t5;                                         \
-        j write_tohost;                                                 \
+  write_exit_reg:                                                       \
+        li t6, EXIT_REG_ADDR;                                           \
+        sw TESTNUM, 0(t6);                                              \
+        j write_exit_reg;                                               \
 reset_vector:                                                           \
         RISCV_MULTICORE_DISABLE;                                        \
         CHECK_XLEN;                                                     \
@@ -164,15 +169,13 @@ reset_vector:                                                           \
 
 #define RVTEST_PASS                                                     \
         fence;                                                          \
-        li TESTNUM, 1;                                                  \
+        li TESTNUM, 0;                                                  \
         ecall
 
 #define TESTNUM x28
 #define RVTEST_FAIL                                                     \
         fence;                                                          \
 1:      beqz TESTNUM, 1b;                                               \
-        sll TESTNUM, TESTNUM, 1;                                        \
-        or TESTNUM, TESTNUM, 1;                                         \
         ecall
 
 //-----------------------------------------------------------------------
@@ -183,10 +186,6 @@ reset_vector:                                                           \
 
 #define RVTEST_DATA_BEGIN                                               \
         EXTRA_DATA                                                      \
-        .pushsection .tohost,"aw",@progbits;                            \
-        .align 6; .global tohost; tohost: .dword 0;                     \
-        .align 6; .global fromhost; fromhost: .dword 0;                 \
-        .popsection;                                                    \
         .align 4; .global begin_signature; begin_signature:
 
 #define RVTEST_DATA_END .align 4; .global end_signature; end_signature:
