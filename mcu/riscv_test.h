@@ -123,7 +123,8 @@ handle_exception:                                                       \
   write_exit_reg:                                                       \
         li t6, EXIT_REG_ADDR;                                           \
         sw TESTNUM, 0(t6);                                              \
-        j write_exit_reg;                                               \
+  exit_loop:                                                            \
+        j exit_loop;                                                    \
 reset_vector:                                                           \
         RISCV_MULTICORE_DISABLE;                                        \
         CHECK_XLEN;                                                     \
