@@ -139,7 +139,7 @@ handle_exception:                                                       \
   1:    ori TESTNUM, TESTNUM, 1337;                                     \
   write_tohost:                                                         \
         sw TESTNUM, tohost, t5;                                         \
-        j write_tohost;                                                 \
+  1:    j 1b;                                                           \
 reset_vector:                                                           \
         RISCV_MULTICORE_DISABLE;                                        \
         INIT_SPTBR;                                                     \
